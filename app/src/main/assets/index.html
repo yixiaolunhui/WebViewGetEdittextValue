@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name=viewport content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0" />
+<meta name=GENERATOR content="MSHTML 8.00.6001.19328" />
+<title>短信登录</title>
+<link rel="stylesheet" type="text/css" href="css/base.css"/>
+<link rel="stylesheet" type="text/css" href="css/layout.css"/>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script type="text/javascript" src="js/jquery.form.js"></script>
+<script type="text/javascript">
+	$(document).ready(function(){
+		$("#smsBut").attr("disabled","");
+	});
+	//获得配置表的定时信息
+	var Time = "60";
+	//如果获得时间为空，就设置时间60　单位：秒
+	if(Time == null || Time == ""){
+		Time = 60;
+	}
+
+	/**************定时器*****************/
+  	var t = null;
+	var canSubmit = false;
+	function starttime(){
+		if(t==null)
+		t = setInterval("e()",1000);
+	}
+	function e(){
+		Time -= 1;
+        if (Time==0) {
+        	clearInterval(t);
+        	$("#smsBut").attr("value","获取随机码");
+        	$("#smsBut").attr("disabled",""); //取消发送短信按钮禁用状态
+        	t = null;
+        	Time = "60";
+        	if(Time == null || Time == ""){
+				Time = 60;
+			}
+        }else{
+         	$("#smsBut").attr("value",Time);
+        }
+	 }
+	/**************定时器 end**************/
+
+	//AJAX发送验证码
+	function submitForm(usermob){
+		$.ajax({
+			//请求地址
+			url:"smsNumber.do",
+			data:"method=sendSms&usermob="+usermob+"&cpid=sohu&t="+(new Date().getTime()/1000),
+			//是否缓存数据
+			cache:false,
+			dataType:"text",
+			type:"post",
+			//成功后的回调函数
+			success:function(msg){
+				//显示提示信息
+				msg = $.trim(msg);
+				if(msg=="0"){
+					$("#mobMsg").html("随机短信码已下发");
+				}else if(msg=="-1"){
+					$("#mobMsg").html("随机短信码已下发");
+					clearInterval(t);
+					$("#smsBut").attr("value","获取随机码");
+		        	$("#smsBut").attr("disabled",""); //取消发送短信按钮禁用状态
+				}
+				$("#mobMsg").css("display","block");
+			},
+			error: function(textStatus){
+				$("#mobMsg").html("系统忙，请稍后再试！");
+				$("#mobMsg").css("display","block");
+	        }
+		});
+	}
+
+	//登录按钮事件
+	function login(){
+		var usermob = $.trim($("#usermob").val());
+		var smsrandomcode = $.trim($("#smsrandomcode").val());
+
+		if(usermob == "" || isNaN(usermob) || usermob.length != 11){
+			$("#mobMsg").html("手机号输入有误");
+			$("#mobMsg").css("display","block");
+		}else if(smsrandomcode == ""){
+			$("#mobMsg").html("随机码输入有误");
+			$("#mobMsg").css("display","block");
+		}else{
+			$("#logBut").attr("disabled","true");
+
+			$.ajax({
+				//请求地址
+				url:"smsNumber.do",
+				data:"method=validateSms&usermob="+usermob+"&smsrandomcode="+smsrandomcode+"&cpid=sohu&t="+(new Date().getTime()/1000),
+				//是否缓存数据
+				cache:false,
+				dataType:"text",
+				type:"post",
+				//成功后的回调函数
+				success:function(msg){
+					//显示提示信息
+					if($.trim(msg)=="0"){
+						$("#logBut").attr("disabled","");
+						canSubmit = true;
+						$("#smsForm").submit();
+					}else{
+						$("#logBut").attr("disabled","");
+						$("#mobMsg").html("短信随机码输入有误或者输入超时");
+					}
+					$("#mobMsg").css("display","block");
+				},
+				error: function(textStatus){
+					$("#logBut").attr("disabled","");
+					$("#mobMsg").html("系统忙，请稍后再试！");
+					$("#mobMsg").css("display","block");
+		        }
+			});
+		}
+	}
+
+	//发送短信验证码
+	function sendSmsRand(){
+		var usermob = $.trim($("#usermob").val());
+		var mobMsg = $("#mobMsg");
+		var smsBut = $("#smsBut");
+		mobMsg.css("display","none");
+		if(usermob == "" || isNaN(usermob) || usermob.length != 11){
+			mobMsg.html("手机号输入有误");
+			mobMsg.css("display","block");
+		}else{
+			smsBut.attr("disabled","true");
+			starttime();
+			submitForm(usermob);
+		}
+	}
+
+	//返回按钮事件处理
+	function jumpcancel(url){
+		window.location=url;
+	}
+
+	function checkCanSubmit() {
+		if(canSubmit) {
+			return true;
+		}
+		login();
+		return false;
+	}
+</script>
+</head>
+<body class="bodyBg">
+<form id="smsForm" action="smsNumber.do" method="post" onsubmit="return checkCanSubmit();">
+<input type="hidden" name="url" id="url" value="null" />
+<input type="hidden" name="cpid" id="cpid" value="sohu" />
+<input type="hidden" name="apptype" id="apptype" value="null" />
+<input type="hidden" name="method" value="redirect" />
+	<div class="pageWidth">
+    	<div class="head tl">
+        	<div class="headBg pr">
+            	<div class="shadow fr pr"></div>
+                <span class="headTitle fs16 fb color03 fl ml20 mt5">短信登录</span>
+            	<span class="headLogo clearfix fr mr20 pa"></span>
+            </div>
+        </div>
+        <!--信息开始-->
+        <div class="mt30 ml30 mr30 tl color04 main pb20 pt15 tc clearfix">
+        	<div class="">尊敬的联通3G用户，请输入您的手机号码，获取“搜狐联通版”视频服务</div>
+        	<div class="loginBox tl">&nbsp;输入您的手机号码：<input id="usermob" name="usermob" type="text" value="123456789" style="width:90px;"  maxlength="11"/></div>
+            <div class="botton mt5 pb10 clearfix">
+            	<div class="fl mr20 ml10">
+            		<input type="button" id="smsBut" value="获取随机码" onclick="sendSmsRand()" class="yellowBtn4 color03 mr20" />
+                </div>
+
+                <span class="fr color01 mr10" id="mobMsg" style="line-height:30px;"></span>
+            </div>
+            <div class="" ><font color="blue">（我们将发送短信至您的手机，请填入短信内的随机码）</font></div>
+            <div class="loginBox tl cb">&nbsp;请输入短信随机码：<input type="text" id="smsrandomcode" name="smsrandomcode" value="" style="width:90px;"  maxlength="11"/></div>
+
+            <div class="line01 cb"></div>
+            <div class="botton mt10" style="text-align: center;">
+            	<input type="button" id="logBut" value="登录" onclick="login()" class="yellowBtn4 color03 mr20" />
+            	<input type="button" onclick="jumpcancel('null')" value="返回" class="greyBtn" />
+            </div>
+        </div>
+        <!--信息结束-->
+
+        <!--箭头盒子开始-->
+        <div class="color04 fs14 tc upBox mt30"><span class="up clearfix pl44"></span></div>
+        <!--箭头盒子结束-->
+    </div>
+</form>
+</body>
+</html>
